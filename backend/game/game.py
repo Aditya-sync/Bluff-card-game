@@ -4,7 +4,7 @@ from .deck import Deck
 from .player import Player
 from .play import Play
 from .card import Rank
-
+from .challenge import ChallengeResult
 
 class Game:
     def __init__(self, players: list[Player], deck_count: int = 1):
@@ -74,6 +74,50 @@ class Game:
 
         return play
 
+    def skip(self, player_id: str):
+        player = self._get_player(player_id)
+
+        if player != self.current_player:
+            raise ValueError("It is not this player's turn")
+
+        self._advance_turn()
+        
+    def check(self, player_id: str):
+        challenger = self._get_player(player_id)
+
+        if challenger != self.current_player:
+            raise ValueError("It is not this player's turn")
+
+        if self.last_actual_play is None:
+            raise ValueError("There is no play to challenge")
+
+        previous_play = self.last_actual_play
+
+        is_truthful = all(
+            card.rank == previous_play.declared_rank
+            for card in previous_play.cards
+        )
+
+        if is_truthful:
+            result = ChallengeResult.TRUTHFUL_PLAY
+            pile_receiver = challenger
+            next_starter = self._get_player(previous_play.player_id)
+
+        else:
+            result = ChallengeResult.BLUFF_CAUGHT
+            pile_receiver = self._get_player(previous_play.player_id)
+            next_starter = challenger
+
+        pile_receiver.hand.extend(self.center_pile)
+        self.center_pile.clear()
+
+        self.current_rank = None
+        self.last_actual_play = None
+
+        self.current_player_index = self.players.index(next_starter)
+
+        return result
+    
     def _get_player(self, player_id: str):
         for player in self.players:
             if player.player_id == player_id:
