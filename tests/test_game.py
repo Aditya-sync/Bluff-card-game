@@ -263,9 +263,10 @@ def test_check_on_truthful_play():
     ]
 
     kings = [
-        card for card in first_player.hand
-        if card.rank == Rank.KING
-    ][:2]
+    Card(Rank.KING, Suit.HEARTS),
+    Card(Rank.KING, Suit.SPADES),
+]
+    first_player.hand = kings.copy()
 
     game.play(
         player_id=first_player.player_id,
@@ -296,16 +297,12 @@ def test_check_after_skips_targets_last_actual_play():
     game.setup()
 
     first_player = game.current_player
-
-    king = next(
-        card for card in first_player.hand
-        if card.rank == Rank.KING
-    )
-
-    non_king = next(
-        card for card in first_player.hand
-        if card.rank != Rank.KING
-    )
+    first_player.hand = [
+    Card(Rank.KING, Suit.HEARTS),
+    Card(Rank.QUEEN, Suit.HEARTS),
+]
+    king = first_player.hand[0]
+    non_king = first_player.hand[1]
 
     game.play(
         player_id=first_player.player_id,
@@ -327,3 +324,102 @@ def test_check_after_skips_targets_last_actual_play():
     assert game.current_player == fourth_player
     assert game.last_actual_play is None
     assert game.current_rank is None
+    
+def test_playing_last_card_does_not_immediately_finish_player():
+    players = create_players(2)
+    game = Game(players)
+
+    game.setup()
+
+    first_player = game.current_player
+
+    last_card = first_player.hand[-1]
+
+    # Remove all other cards so this is definitely their last card.
+    first_player.hand = [last_card]
+
+    game.play(
+        player_id=first_player.player_id,
+        cards=[last_card],
+        declared_rank=last_card.rank,
+    )
+
+    assert first_player.card_count() == 0
+    assert first_player.finished is False
+    assert first_player.has_finished is False
+    
+def test_player_finishes_when_next_player_plays():
+    players = create_players(2)
+    game = Game(players)
+
+    game.setup()
+
+    first_player = game.current_player
+    second_player = players[
+        (players.index(first_player) + 1) % len(players)
+    ]
+
+    last_card = first_player.hand[-1]
+    first_player.hand = [last_card]
+
+    game.play(
+        player_id=first_player.player_id,
+        cards=[last_card],
+        declared_rank=last_card.rank,
+    )
+
+    assert first_player.card_count() == 0
+    assert first_player.finished is False
+
+    # Give second player a controlled card.
+    second_card = second_player.hand[0]
+
+    game.play(
+        player_id=second_player.player_id,
+        cards=[second_card],
+        declared_rank=last_card.rank,
+    )
+
+    assert first_player.finished is True
+    assert first_player in game.finished_players
+    
+def test_truthful_last_card_finishes_player_when_checked():
+    players = create_players(2)
+    game = Game(players)
+
+    game.setup()
+
+    first_player = game.current_player
+    second_player = players[
+        (players.index(first_player) + 1) % len(players)
+    ]
+
+    last_card = Card(Rank.KING, Suit.HEARTS)
+    first_player.hand = [last_card]
+
+    game.play(
+        player_id=first_player.player_id,
+        cards=[last_card],
+        declared_rank=Rank.KING,
+    )
+
+    assert first_player.card_count() == 0
+    assert first_player.finished is False
+
+    result = game.check(second_player.player_id)
+
+    assert result == ChallengeResult.TRUTHFUL_PLAY
+    assert first_player.finished is True
+    assert first_player in game.finished_players
+    
+def test_advance_turn_skips_finished_player():
+    players = create_players(3)
+    game = Game(players)
+
+    game.current_player_index = 0
+
+    players[1].finished = True
+
+    game._advance_turn()
+
+    assert game.current_player == players[2]

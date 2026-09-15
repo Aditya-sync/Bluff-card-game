@@ -17,6 +17,8 @@ class Game:
         self.current_player_index = None
         self.current_rank = None
         self.last_actual_play = None
+        self.finished_players = []
+        self.pending_finisher = None
 
     def setup(self):
         self.deck.shuffle()
@@ -46,33 +48,43 @@ class Game:
         declared_rank: Rank,
     ):
         player = self._get_player(player_id)
-
+    
         if player != self.current_player:
             raise ValueError("It is not this player's turn")
-
+    
         if self.current_rank is not None and declared_rank != self.current_rank:
             raise ValueError("Must follow the current declared rank")
-
+    
         for card in cards:
             if card not in player.hand:
                 raise ValueError("Player does not have one or more of these cards")
-
+    
         for card in cards:
             player.remove_card(card)
-            self.center_pile.append(card)
-
+    
+        self.center_pile.extend(cards)
+    
         play = Play(
             player_id=player_id,
             cards=cards,
             declared_rank=declared_rank,
         )
-
+    
+        # If the previous player was waiting to finish,
+        # their play is now safe because a new actual play happened.
+        if self.pending_finisher is not None:
+            self._finish_pending_player()
+    
+        # The current player may now become a pending finisher.
+        if player.card_count() == 0:
+            self.pending_finisher = player
+    
         self.last_actual_play = play
         self.current_rank = declared_rank
-
+    
         self._advance_turn()
-
-        return play
+    
+        return play    
 
     def skip(self, player_id: str):
         player = self._get_player(player_id)
@@ -115,8 +127,19 @@ class Game:
         self.last_actual_play = None
 
         self.current_player_index = self.players.index(next_starter)
+        if result == ChallengeResult.TRUTHFUL_PLAY:
+            self._finish_pending_player()
+        else:
+            self.pending_finisher = None
 
         return result
+    def _finish_pending_player(self):
+        if self.pending_finisher is None:
+            return
+        player = self.pending_finisher
+        player.finished = True
+        self.finished_players.append(player)
+        self.pending_finisher = None
     
     def _get_player(self, player_id: str):
         for player in self.players:
@@ -124,8 +147,17 @@ class Game:
                 return player
 
         raise ValueError("Player not found")
-
+    
     def _advance_turn(self):
-        self.current_player_index = (
-            self.current_player_index + 1
-        ) % len(self.players)
+        start_index = self.current_player_index
+    
+        while True:
+            self.current_player_index = (
+                self.current_player_index + 1
+            ) % len(self.players)
+    
+            if not self.current_player.finished:
+                return
+    
+            if self.current_player_index == start_index:
+                raise ValueError("No active players remaining")    

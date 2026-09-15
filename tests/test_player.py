@@ -30,3 +30,9 @@ def test_player_can_remove_card():
 
     assert player.card_count() == 0
     assert player.hand == []
+    
+def test_player_is_not_finished_when_created():
+    player = Player("p1", "Aditya")
+
+    assert player.finished is False
+    assert player.has_finished is False

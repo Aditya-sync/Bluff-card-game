@@ -30,3 +30,4 @@ def test_play_cannot_be_empty():
             cards=[],
             declared_rank=Rank.KING,
         )
+        
