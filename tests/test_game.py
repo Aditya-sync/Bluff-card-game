@@ -438,3 +438,33 @@ def test_finished_players_are_ranked_in_order():
 
     # We'll fill this test properly once we hook into the
     # existing finishing logic.
+def test_setup_deals_cards_equally():
+    players = create_players(4)
+    game = Game(players)
+
+    game.setup()
+
+    assert all(player.card_count() == 13 for player in players)
+    assert len(game.center_pile) == 0
+
+def test_setup_puts_remaining_cards_in_center_pile():
+    players = create_players(3)
+    game = Game(players)
+
+    game.setup()
+
+    assert all(player.card_count() == 17 for player in players)
+    assert len(game.center_pile) == 1
+    
+def test_setup_initializes_game_state():
+    players = create_players(3)
+    game = Game(players)
+
+    game.setup()
+
+    assert game.current_player in players
+    assert game.current_rank is None
+    assert game.last_actual_play is None
+    assert game.finished_players == []
+    assert game.pending_finisher is None
+    assert game.is_over is False
