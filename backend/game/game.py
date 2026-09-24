@@ -84,8 +84,13 @@ class Game:
         self.deck.cards.clear()
 
         # Randomly select the first player.
-        self.current_player_index = random.randrange(len(self.players))
-
+        # The player holding a King starts the game.
+        for index, player in enumerate(self.players):
+            if any(card.rank == Rank.KING for card in player.hand):
+                self.current_player_index = index
+                break
+        else:
+            raise ValueError("No player has a King")
         # Reset game state.
         self.current_rank = None
         self.last_actual_play = None
