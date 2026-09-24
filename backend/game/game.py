@@ -5,14 +5,26 @@ from .player import Player
 from .play import Play
 from .card import Rank
 from .challenge import ChallengeResult
-
+from .config import GameConfig
 class Game:
-    def __init__(self, players: list[Player], deck_count: int = 1):
+    def __init__(
+    self,
+    players: list[Player],
+    config: GameConfig | None = None,
+):
         if len(players) < 2:
             raise ValueError("A game needs at least 2 players")
-
+        if config is None:
+            self.config = GameConfig(player_count=len(players))
+        else:
+            self.config = config
+            self.config.validate()
+        if self.config.player_count != len(players):
+            raise ValueError(
+                "Config player count must match the number of players"
+            )
         self.players = players
-        self.deck = Deck(deck_count)
+        self.deck = Deck(self.config.deck_count)
         self.center_pile = []
         self.current_player_index = None
         self.current_rank = None
