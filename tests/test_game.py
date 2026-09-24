@@ -423,3 +423,18 @@ def test_advance_turn_skips_finished_player():
     game._advance_turn()
 
     assert game.current_player == players[2]
+    
+def test_game_is_not_over_initially():
+    players = create_players(3)
+    game = Game(players)
+    game.setup()
+
+    assert game.is_over is False
+
+
+def test_finished_players_are_ranked_in_order():
+    players = create_players(3)
+    game = Game(players)
+
+    # We'll fill this test properly once we hook into the
+    # existing finishing logic.
