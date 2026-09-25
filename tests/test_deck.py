@@ -24,3 +24,4 @@ def test_four_decks_have_208_cards():
 def test_invalid_deck_count():
     with pytest.raises(ValueError):
         Deck(0)
+        
