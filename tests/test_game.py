@@ -431,10 +431,42 @@ def test_game_is_not_over_initially():
 
     assert game.is_over is False
 
-
 def test_finished_players_are_ranked_in_order():
     players = create_players(3)
     game = Game(players)
+
+    game.setup()
+
+    first_player = game.current_player
+
+    # Give the first player exactly one card.
+    last_card = first_player.hand[0]
+    first_player.hand = [last_card]
+
+    # First player plays their final card.
+    game.play(
+        player_id=first_player.player_id,
+        cards=[last_card],
+        declared_rank=last_card.rank,
+    )
+
+    second_player = game.current_player
+
+    # Second player makes an actual play.
+    second_card = second_player.hand[0]
+
+    game.play(
+        player_id=second_player.player_id,
+        cards=[second_card],
+        declared_rank=last_card.rank,
+    )
+
+    # First player should now be officially finished.
+    assert first_player.finished is True
+    assert first_player in game.finished_players
+
+    # Second player should not be finished yet.
+    assert second_player.finished is False
 
     # We'll fill this test properly once we hook into the
     # existing finishing logic.
@@ -467,4 +499,39 @@ def test_setup_initializes_game_state():
     assert game.last_actual_play is None
     assert game.finished_players == []
     assert game.pending_finisher is None
+    assert game.is_over is False
+    
+def test_game_is_over_when_finish_target_reached():
+    players = create_players(2)
+    game = Game(players)
+
+    game.setup()
+
+    first_player = game.current_player
+
+    # Make the current player finish.
+    game.pending_finisher = first_player
+    game._finish_pending_player()
+
+    assert first_player.finished is True
+    assert first_player in game.finished_players
+    assert game.is_over is True
+    
+def test_game_is_not_over_before_finish_target_reached():
+    players = create_players(3)
+    game = Game(players)
+
+    game.setup()
+
+    first_player = game.current_player
+
+    game.pending_finisher = first_player
+    game._finish_pending_player()
+
+    assert first_player.finished is True
+    assert len(game.finished_players) == 1
+
+    # Require two players to finish before game ends.
+    game.config.finish_target = 2
+
     assert game.is_over is False
