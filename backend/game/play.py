@@ -18,3 +18,4 @@ class Play:
     @property
     def card_count(self):
         return len(self.cards)
+    

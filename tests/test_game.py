@@ -14,7 +14,16 @@ def create_players(count):
         for i in range(1, count + 1)
     ]
 
+def make_game(player_count=4, deck_count=1, finish_target=1):
+    players = create_players(player_count)
 
+    config = GameConfig(
+        player_count=player_count,
+        deck_count=deck_count,
+        finish_target=finish_target,
+    )
+
+    return Game(players, config)
 # ============================================================
 # INITIALIZATION
 # ============================================================
@@ -623,3 +632,20 @@ def test_advance_turn_skips_finished_players():
     game._advance_turn()
 
     assert game.current_player == players[2]
+    
+def test_finished_players_are_ranked_in_order():
+    game = make_game(
+        player_count=4,
+        deck_count=1,
+        finish_target=3,
+    )
+
+    players = game.players
+
+    players[0].finished = True
+    players[1].finished = True
+
+    game._record_finished_player(players[0])
+    game._record_finished_player(players[1])
+
+    assert game.finished_players == [players[0], players[1]]

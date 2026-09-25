@@ -277,16 +277,16 @@ class Game:
 
     def _finish_pending_player(self):
         """Move the pending finisher into the finished list."""
-
+    
         if self.pending_finisher is None:
             return
-
+    
         player = self.pending_finisher
-
+    
         player.finished = True
-
-        self.finished_players.append(player)
-
+    
+        self._record_finished_player(player)    
+    
         self.pending_finisher = None
         
 # ---------------------------------------------------------
@@ -335,3 +335,23 @@ class Game:
             # there are no active players remaining.
             if self.current_player_index == start_index:
                 raise ValueError("No active players remaining")
+            
+            
+    def _record_finished_player(self, player):
+        """Record a player in finishing order."""
+        if player not in self.finished_players:
+            self.finished_players.append(player)
+    
+    def _finish_pending_player(self):
+        """Move the pending finisher into the finished list."""
+    
+        if self.pending_finisher is None:
+            return
+    
+        player = self.pending_finisher
+    
+        player.finished = True
+    
+        self._record_finished_player(player)
+    
+        self.pending_finisher = None    
